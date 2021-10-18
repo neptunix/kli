@@ -17,6 +17,8 @@ export default class Sniper {
 
   // Token to watch
   tokenAddress: string;
+  // From token
+  fromTokenAddress: string | undefined;
   // Factory contract
   factory: Contract;
   // Amount of base token (ETH/Matic) to spend
@@ -24,7 +26,7 @@ export default class Sniper {
   // Maximum gas price to pay for tx inclusion
   gasPrice: BigNumber;
   // Gas Limit
-  gasLimit: number;
+  gasLimit: BigNumber;
   // Max trade slippage
   slippage: number;
 
@@ -45,7 +47,8 @@ export default class Sniper {
     privateKey: string,
     purchaseAmount: string,
     gasPrice: string,
-    slippage: number
+    slippage: number,
+    fromTokenAddress?: string
   ) {
     // Setup networking + wallet
     this.rpc = new providers.WebSocketProvider(rpcEndpoint);
@@ -53,10 +56,13 @@ export default class Sniper {
 
     // Setup token details
     this.tokenAddress = utils.getAddress(tokenAddress); // Normalize address
+    this.fromTokenAddress = fromTokenAddress
+      ? utils.getAddress(fromTokenAddress)
+      : undefined;
     this.factory = new Contract(factoryAddress, ABI_UniswapV2Factory, this.rpc);
     this.purchaseAmount = purchaseAmount;
     this.gasPrice = utils.parseUnits(gasPrice, "gwei");
-    this.gasLimit = 200000;
+    this.gasLimit = utils.parseUnits("200000", "wei");
     this.slippage = slippage;
   }
 
@@ -66,6 +72,7 @@ export default class Sniper {
    * @param {string} token1 address of token1 in pair
    */
   async submitPurchaseTx(token0: string, token1: string): Promise<void> {
+    const network = await this.rpc.getNetwork();
     // Setup token address
     const desiredIsFirst: boolean = token0 === this.tokenAddress;
     const desiredTokenAddress: string = desiredIsFirst ? token0 : token1;
@@ -73,7 +80,10 @@ export default class Sniper {
     // Generate Uniswap pair
     const pair = new UniswapPair({
       // Base chain token to convert from
-      fromTokenContractAddress: ETH.POLYGON().contractAddress,
+      // fromTokenContractAddress: ETH.POLYGON().contractAddress, // MATIC
+      fromTokenContractAddress: this.fromTokenAddress // We use from Token or MATIC
+        ? this.fromTokenAddress
+        : ETH.POLYGON().contractAddress,
       // Desired token to purchase
       toTokenContractAddress: desiredTokenAddress,
       // Ethereum address of user
@@ -86,10 +96,8 @@ export default class Sniper {
         uniswapVersions: [UniswapVersion.v2] // Only V2
       })
     });
-    console.log(pair);
-
-    // Create pair factory
     const uniswapPairFactory = await pair.createFactory();
+
     // Generate trade
     const trade = await uniswapPairFactory.trade(
       this.purchaseAmount,
@@ -100,7 +108,7 @@ export default class Sniper {
     let tx: any = trade.transaction;
     tx.gasPrice = this.gasPrice;
     tx.gasLimit = (await this.rpc.estimateGas(tx)).mul(2);
-    //    tx.nonce = 2;
+    tx.nonce = 7;
 
     console.log(tx);
     // Send and log trade

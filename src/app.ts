@@ -7,6 +7,8 @@ dotenv.config();
 (async () => {
   // Token address
   const tokenAddress: string | undefined = process.env.TOKEN_ADDRESS;
+
+  const fromTokenAddress: string | undefined = process.env.FROM_TOKEN_ADDRESS;
   // Factory address
   const factoryAddress: string | undefined = process.env.FACTORY_ADDRESS;
   // RPC endpoint
@@ -34,10 +36,11 @@ dotenv.config();
     privateKey,
     purchaseAmount,
     gasPrice,
-    slippage
+    slippage,
+    fromTokenAddress
   );
   // Wait and snipe pool
-  //await sniper.snipe();
+  await sniper.snipe();
 
-  await sniper.submitPurchaseTx(tokenAddress, tokenAddress);
+  // await sniper.submitPurchaseTx(`0x4e78011Ce80ee02d2c3e649Fb657E45898257815`, `0x4e78011Ce80ee02d2c3e649Fb657E45898257815`);
 })();
