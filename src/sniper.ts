@@ -23,6 +23,8 @@ export default class Sniper {
   purchaseAmount: string;
   // Maximum gas price to pay for tx inclusion
   gasPrice: BigNumber;
+  // Gas Limit
+  gasLimit: number;
   // Max trade slippage
   slippage: number;
 
@@ -46,7 +48,7 @@ export default class Sniper {
     slippage: number
   ) {
     // Setup networking + wallet
-    this.rpc = new providers.JsonRpcProvider(rpcEndpoint);
+    this.rpc = new providers.WebSocketProvider(rpcEndpoint);
     this.wallet = new Wallet(privateKey, this.rpc);
 
     // Setup token details
@@ -54,6 +56,7 @@ export default class Sniper {
     this.factory = new Contract(factoryAddress, ABI_UniswapV2Factory, this.rpc);
     this.purchaseAmount = purchaseAmount;
     this.gasPrice = utils.parseUnits(gasPrice, "gwei");
+    this.gasLimit = 200000;
     this.slippage = slippage;
   }
 
@@ -83,6 +86,7 @@ export default class Sniper {
         uniswapVersions: [UniswapVersion.v2] // Only V2
       })
     });
+    console.log(pair);
 
     // Create pair factory
     const uniswapPairFactory = await pair.createFactory();
@@ -95,7 +99,10 @@ export default class Sniper {
     // Update trade gas price
     let tx: any = trade.transaction;
     tx.gasPrice = this.gasPrice;
+    tx.gasLimit = (await this.rpc.estimateGas(tx)).mul(2);
+    //    tx.nonce = 2;
 
+    console.log(tx);
     // Send and log trade
     const tradeTx = await this.wallet.sendTransaction(tx);
     logger.info(`Transaction sent: ${tradeTx.hash}`);

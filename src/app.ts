@@ -17,7 +17,7 @@ dotenv.config();
   // Purchase amount in chain base token
   const purchaseAmount: string = process.env.AMOUNT ?? "0.01"; // 0.01 eth/matic/etc.
   // Gas price to send
-  const gasPrice: string = process.env.GAS_PRICE ?? "2000"; // 2,000 gwei
+  const gasPrice: string = process.env.GAS_PRICE ?? "100"; // 2,000 gwei
   // Slippage tolerance
   const slippage: number = Number(process.env.SLIPPAGE) ?? 0.1; // 10%
 
@@ -37,5 +37,7 @@ dotenv.config();
     slippage
   );
   // Wait and snipe pool
-  await sniper.snipe();
+  //await sniper.snipe();
+
+  await sniper.submitPurchaseTx(tokenAddress, tokenAddress);
 })();
